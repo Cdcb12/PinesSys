@@ -1,10 +1,16 @@
 package com.setvene.jm.pinessys.model
 
 data class ChatMessage(
-    val sender: SenderType,
-    val messageType: MessageType,
-    val text: String,
-)
+    var sender: SenderType,
+    var messageType: MessageType,
+    var text: String? = null,
+    var imageUrl: String? = null,
+    var audioUrl: String? = null
+) {
+    fun updateText(newText: String?) {
+        text = newText
+    }
+}
 
 enum class SenderType {
     USER,
