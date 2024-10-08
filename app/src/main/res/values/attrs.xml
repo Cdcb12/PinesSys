@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SetveneShadow">
+        <attr name="shadowColorStart" format="color"/>
+        <attr name="shadowColorEnd" format="color"/>
+        <attr name="shadowOpacity" format="float"/>
+        <attr name="shadowPosition" format="enum">
+            <enum name="top" value="0"/>
+            <enum name="bottom" value="1"/>
+            <enum name="left" value="2"/>
+            <enum name="right" value="3"/>
+        </attr>
+    </declare-styleable>
+    <declare-styleable name="SetveneTextView">
+        <attr name="strikethrough" format="boolean" />
+    </declare-styleable>
+    <declare-styleable name="RoundedImageView">
+        <attr name="cornerRadius" format="dimension" />
+    </declare-styleable>
+</resources>

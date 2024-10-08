@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">PinesSys</string>
+    <string name="ai_name">Nubill AI</string>
+    <string name="type_document_budget">Preosupuesto</string>
+
+    <string name="okhttp_error_ConnectException">Sin conexión a internet</string>
+    <string name="okhttp_error_UnknownHostException">URL o host desconocido</string>
+    <string name="okhttp_error_SocketTimeoutException">Tiempo de conexión agotado</string>
+    <string name="okhttp_error_SSLHandshakeException">Fallo en el apretón de manos SSL</string>
+    <string name="okhttp_error_MalformedURLException">URL Incorrecta</string>
+    <string name="okhttp_wait_response">Procesando...</string>
+
+</resources>
