@@ -1,6 +1,10 @@
 package com.setvene.jm.pinessys.adapters
 
 import android.annotation.SuppressLint
+import android.graphics.Typeface
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.StyleSpan
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -46,7 +50,7 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
                     clientTextView.text = "Nubill AI"
                     messageContainer.gravity = Gravity.START
                     container.setPaddingRelative(
-                        container.paddingStart,
+                        0,
                         container.paddingTop,
                         60.toPx(),
                         container.paddingBottom
@@ -58,7 +62,7 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
                     container.setPaddingRelative(
                         60.toPx(),
                         container.paddingTop,
-                        container.paddingEnd,
+                        0,
                         container.paddingBottom
                     )
                 }
@@ -74,7 +78,7 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
                     val imageView: ImageView = view.findViewById(R.id.imageView)
 
                     if (!message.text.isNullOrEmpty()) {
-                        textMessage.text = message.text
+                        textMessage.text = formatTextWithBold(message.text!!)
                         textMessage.visibility = View.VISIBLE
                     } else {
                         textMessage.visibility = View.GONE
@@ -93,12 +97,42 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
                     val view = layoutInflater.inflate(R.layout.audio_message_item, container, false)
                     val playButton: MaterialButton = view.findViewById(R.id.btn_clear_cart)
                     val seekBar: SeekBar = view.findViewById(R.id.audioSeekBar)
-
-                    // Setup audio playback logic here
-
                     container.addView(view)
                 }
             }
         }
+    }
+
+    private fun formatTextWithBold(text: String): SpannableString {
+        // Expresión regular para encontrar texto entre **
+        val boldPattern = "\\*\\*(.*?)\\*\\*".toRegex()
+        val matches = boldPattern.findAll(text)
+
+        // Crear un nuevo texto sin los ** y calcular las posiciones correctas
+        val spannableString = SpannableString(text.replace(boldPattern, "$1"))
+
+        var offset = 0
+
+        matches.forEach { matchResult ->
+            val originalStart = matchResult.range.first
+            val originalEnd = matchResult.range.last
+
+            // Calcular las posiciones ajustadas quitando los **
+            val adjustedStart = originalStart - offset
+            val adjustedEnd = originalEnd - offset - 2
+
+            // Aplicar negrita a las posiciones ajustadas
+            spannableString.setSpan(
+                StyleSpan(Typeface.BOLD),
+                adjustedStart,
+                adjustedEnd,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+
+            // Actualizar el offset para mantener las posiciones correctas
+            offset += 4 // Dos ** al inicio y dos ** al final
+        }
+
+        return spannableString
     }
 }

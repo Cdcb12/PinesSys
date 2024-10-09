@@ -6,7 +6,6 @@
     android:id="@+id/message_container"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/colorPallet1"
     android:gravity="start"
     android:padding="@dimen/padding4">
 

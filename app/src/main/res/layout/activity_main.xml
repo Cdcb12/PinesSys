@@ -3,10 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorPallet1"
+    android:background="@color/colorPallet2"
+    android:orientation="vertical"
     tools:context=".MainActivity">
 
 
@@ -18,62 +18,147 @@
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_alignParentStart="true"
             android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
             android:orientation="vertical"
             tools:ignore="UselessParent">
 
             <com.setvene.jm.pinessys.components.SetveneTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/ai_name"
-                android:textSize="@dimen/textSize6"
                 android:fontFamily="@font/roboto_black"
-                android:textColor="@color/textColor1"/>
+                android:text="@string/ai_name"
+                android:textColor="@color/textColor1"
+                android:textSize="@dimen/textSize6" />
 
             <com.setvene.jm.pinessys.components.SetveneTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/type_document_budget"
-                android:textSize="@dimen/textSize4"
                 android:fontFamily="@font/roboto_black"
-                android:textColor="@color/textColor1"/>
+                android:text="@string/type_document_budget"
+                android:textColor="@color/textColor1"
+                android:textSize="@dimen/textSize4" />
 
         </LinearLayout>
 
     </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
         <com.setvene.jm.pinessys.components.SetveneShadow
             android:layout_width="match_parent"
-            android:layout_height="13dp"
+            android:layout_height="14dp"
             app:shadowPosition="bottom">
 
         </com.setvene.jm.pinessys.components.SetveneShadow>
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_alignParentTop="true"
+            android:layout_alignParentBottom="true"
+            android:layout_weight="1"
+            android:focusable="auto"
+            android:focusableInTouchMode="true">
 
         </androidx.recyclerview.widget.RecyclerView>
-    <LinearLayout
+
+    </RelativeLayout>
+
+
+
+
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="@dimen/padding3">
-            <EditText
-                android:id="@+id/inputMessage"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Escribe un mensaje"
-                android:inputType="text" />
+        app:cardCornerRadius="20dp"
+        app:cardElevation="4dp"
+        android:layout_margin="@dimen/padding4"
+        android:backgroundTint="@color/colorPallet4"
+        app:strokeWidth="0dp">
 
-            <ImageButton
-                android:id="@+id/sendButton"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/constraint_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp">
+
+            <!-- TextInputLayout que contiene el EditText -->
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/text_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:boxBackgroundMode="none"
+                app:boxStrokeWidth="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/btn_layout"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.0"
+                android:gravity="center_vertical"
+                app:hintEnabled="false">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/input_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Envia un Texto"
+                    android:inputType="textMultiLine"
+                    android:maxLines="5"
+                    android:minLines="1"
+                    android:padding="8dp"
+                    android:scrollbars="vertical"
+                    android:textColor="@android:color/white"
+                    android:textColorHint="#3DFFFFFF" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_layout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_menu_send"
-                android:contentDescription="Enviar" />
-    </LinearLayout>
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_mic"
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:backgroundTint="@android:color/transparent"
+                    app:icon="@drawable/ic_mic"
+                    android:insetTop="0dp"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconTint="@color/white"
+                    app:iconSize="@dimen/textSize6"
+                    android:insetBottom="0dp"
+                    android:textColor="@android:color/white"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_send"
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:backgroundTint="@android:color/transparent"
+                    app:icon="@drawable/ic_send"
+                    android:insetTop="0dp"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconTint="@color/white"
+                    app:iconSize="@dimen/textSize6"
+                    android:insetBottom="0dp"
+                    android:textColor="@android:color/white"/>
+
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.card.MaterialCardView>
+
 
 
 </LinearLayout>

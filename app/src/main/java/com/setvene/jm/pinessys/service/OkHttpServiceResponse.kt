@@ -1,6 +1,8 @@
 package com.setvene.jm.pinessys.service
 
 import android.app.Activity
+import android.os.Handler
+import android.os.Looper
 import com.setvene.jm.pinessys.R
 import com.setvene.jm.pinessys.model.Choice
 import com.setvene.jm.pinessys.model.Delta
@@ -28,7 +30,7 @@ class OkHttpServiceResponse(private val context: Activity) {
         fun onFinallyStream() {}
     }
 
-    fun makeStreamRequest(formBody: RequestBody, url: String, callback: StreamCallback) {
+    fun makeStreamRequestAI(formBody: RequestBody, url: String, callback: StreamCallback) {
         val client = OkHttpClient()
 
         val request = Request.Builder()
@@ -49,16 +51,13 @@ class OkHttpServiceResponse(private val context: Activity) {
 
                     try {
                         val lines = responseBody.split("\n")
-                        val allContent = StringBuilder()
                         val choicesList = mutableListOf<Choice>()
                         callback.onStartStream()
 
                         for (line in lines) {
                             if (line.startsWith("data: ")) {
                                 val jsonData = line.removePrefix("data: ").trim()
-                                println(jsonData)
 
-                                // Check for the [DONE] message
                                 if (jsonData == "[DONE]") {
                                     break
                                 }
@@ -79,7 +78,9 @@ class OkHttpServiceResponse(private val context: Activity) {
                                         choice.opt("finish_reason")
                                     )
                                 )
+                                Thread.sleep(10)
                                 callback.onChunkReceived(eventStreamChunk)
+
                             }
                         }
 
