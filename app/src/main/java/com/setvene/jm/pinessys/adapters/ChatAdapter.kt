@@ -1,7 +1,12 @@
 package com.setvene.jm.pinessys.adapters
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Typeface
+import android.media.MediaPlayer
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StyleSpan
@@ -23,7 +28,7 @@ import com.setvene.jm.pinessys.model.SenderType
 import com.setvene.jm.pinessys.ui.toPx
 
 
-class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapter<ChatAdapter.MessageViewHolder>() {
+class ChatAdapter(private val messages: List<ChatMessage>, private val context: Context) : RecyclerView.Adapter<ChatAdapter.MessageViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.message_body_item, parent, false)
@@ -95,8 +100,70 @@ class ChatAdapter(private val messages: List<ChatMessage>) : RecyclerView.Adapte
                 }
                 MessageType.AUDIO -> {
                     val view = layoutInflater.inflate(R.layout.audio_message_item, container, false)
-                    val playButton: MaterialButton = view.findViewById(R.id.btn_clear_cart)
+                    val playPauseButton: MaterialButton = view.findViewById(R.id.btn_clear_cart)
                     val seekBar: SeekBar = view.findViewById(R.id.audioSeekBar)
+                    val audioPath = message.audioPath
+
+                    var mediaPlayer: MediaPlayer? = null
+                    val handler = Handler(Looper.getMainLooper())
+                    val updateSeekBar: Runnable = object : Runnable {
+                        override fun run() {
+                            mediaPlayer?.let {
+                                if (it.isPlaying) {
+                                    seekBar.progress = it.currentPosition
+                                    handler.postDelayed(this, 100)
+                                }
+                            }
+                        }
+                    }
+
+                    playPauseButton.setOnClickListener {
+                        if (mediaPlayer == null) {
+                            mediaPlayer = MediaPlayer.create(context, Uri.parse(audioPath)).apply {
+                                setOnCompletionListener { mp ->
+                                    mp.release()
+                                    mediaPlayer = null
+                                    handler.removeCallbacks(updateSeekBar)
+                                    seekBar.progress = 0 // Reset seek bar to the start
+                                    playPauseButton.setIconResource(R.drawable.ic_play) // Reset icon to play
+                                }
+                                seekBar.max = duration
+                                seekTo(seekBar.progress) // Start from the current seek bar position
+                                start()
+                                handler.post(updateSeekBar)
+                                playPauseButton.setIconResource(R.drawable.ic_pause) // Change icon to pause
+                            }
+                        } else if (mediaPlayer!!.isPlaying) {
+                            mediaPlayer?.pause()
+                            playPauseButton.setIconResource(R.drawable.ic_play) // Change icon to play
+                        } else {
+                            mediaPlayer?.seekTo(seekBar.progress) // Ensure it starts from the seek bar position
+                            mediaPlayer?.start()
+                            handler.post(updateSeekBar)
+                            playPauseButton.setIconResource(R.drawable.ic_pause) // Change icon to pause
+                        }
+                    }
+
+                    seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                        override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser:  Boolean) {
+                            if (fromUser  && mediaPlayer != null) {
+                                mediaPlayer?.seekTo(progress)
+                            }
+                        }
+
+                        override fun onStartTrackingTouch(seekBar: SeekBar) {
+                            // Optional: Add logic if needed when the user starts touching the seek bar
+                        }
+
+                        override fun onStopTrackingTouch(seekBar: SeekBar) {
+                            if (mediaPlayer != null && !mediaPlayer!!.isPlaying) {
+                                mediaPlayer?.start() // Start playing if it was paused
+                                handler.post(updateSeekBar)
+                                playPauseButton.setIconResource(R.drawable.ic_pause) // Change icon to pause
+                            }
+                        }
+                    })
+
                     container.addView(view)
                 }
             }

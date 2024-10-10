@@ -5,7 +5,7 @@ data class ChatMessage(
     var messageType: MessageType,
     var text: String? = null,
     var imageUrl: String? = null,
-    var audioUrl: String? = null
+    var audioPath: String? = null
 ) {
     fun updateText(newText: String?) {
         text = newText
