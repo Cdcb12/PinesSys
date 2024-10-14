@@ -37,7 +37,7 @@ android {
 
 
 dependencies {
-    implementation("com.arthenica:mobile-ffmpeg-full-gpl:4.4.LTS")
+    implementation("com.arthenica:ffmpeg-kit-full:4.5.LTS")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation(libs.androidx.core.ktx)

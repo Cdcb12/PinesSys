@@ -1,7 +1,11 @@
 package com.setvene.jm.pinessys.controllers
 
+import com.setvene.jm.pinessys.model.ChatMessage
 import org.json.JSONArray
 import org.json.JSONObject
+
+val messages: MutableList<ChatMessage> = mutableListOf()
+
 
 object MessageHistoryManager {
     private const val MAX_HISTORY_SIZE = 20

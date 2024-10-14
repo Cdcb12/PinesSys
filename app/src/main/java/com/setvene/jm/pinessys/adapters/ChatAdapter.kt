@@ -156,11 +156,7 @@ class ChatAdapter(private val messages: List<ChatMessage>, private val context: 
                         }
 
                         override fun onStopTrackingTouch(seekBar: SeekBar) {
-                            if (mediaPlayer != null && !mediaPlayer!!.isPlaying) {
-                                mediaPlayer?.start() // Start playing if it was paused
-                                handler.post(updateSeekBar)
-                                playPauseButton.setIconResource(R.drawable.ic_pause) // Change icon to pause
-                            }
+
                         }
                     })
 

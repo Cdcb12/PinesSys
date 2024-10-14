@@ -1,8 +1,6 @@
 package com.setvene.jm.pinessys.service
 
 import android.app.Activity
-import android.os.Handler
-import android.os.Looper
 import com.setvene.jm.pinessys.R
 import com.setvene.jm.pinessys.model.Choice
 import com.setvene.jm.pinessys.model.Delta
@@ -20,6 +18,7 @@ import java.net.ConnectException
 import java.net.MalformedURLException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLHandshakeException
 
 class OkHttpServiceResponse(private val context: Activity) {
@@ -28,6 +27,65 @@ class OkHttpServiceResponse(private val context: Activity) {
         fun onChunkReceived(chunk: EventStreamChunk) {}
         fun onError(responseCode: Number, message: Any) {}
         fun onFinallyStream() {}
+    }
+    interface RequestCallback {
+        fun onSuccess(response: Any)
+        fun onError(responseCode: Number, message: Any) {}
+    }
+
+    fun makeRequest(formBody: RequestBody, url: String, callback: RequestCallback) {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
+
+        val request = Request.Builder()
+            .url(url)
+            .post(formBody)
+            .build()
+
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                val errorMessage = getErrorMessage(e)
+                println("Request failed: ${e.message}")
+                e.printStackTrace()
+                callback.onError(400, errorMessage)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                println(responseBody)
+
+                if (responseBody != null) {
+                    try {
+                        val inquiryResponse = JSONObject(responseBody)
+
+                        when (response.code) {
+                            404 -> context.runOnUiThread {
+                                callback.onError(response.code, inquiryResponse.getJSONObject("error").getString("message"))
+                            }
+                            503, 500 -> context.runOnUiThread {
+                                callback.onError(response.code, inquiryResponse.getJSONObject("error").getString("message"))
+                            }
+                            200 -> context.runOnUiThread {
+                                callback.onSuccess(inquiryResponse.getString("text"))
+                            }
+                        }
+
+                    } catch (e: JSONException) {
+                        context.runOnUiThread {
+                            callback.onError(422, "Error parsing JSON response: $e")
+                        }
+                    }
+                } else {
+                    context.runOnUiThread {
+                        callback.onError(503, "Error getting response body")
+                    }
+                }
+            }
+        })
     }
 
     fun makeStreamRequestAI(formBody: RequestBody, url: String, callback: StreamCallback) {
@@ -51,7 +109,6 @@ class OkHttpServiceResponse(private val context: Activity) {
 
                     try {
                         val lines = responseBody.split("\n")
-                        val choicesList = mutableListOf<Choice>()
                         callback.onStartStream()
 
                         for (line in lines) {

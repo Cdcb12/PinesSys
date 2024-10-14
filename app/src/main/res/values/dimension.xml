@@ -5,6 +5,7 @@
     <dimen name="padding2">20dp</dimen>
     <dimen name="padding3">15dp</dimen>
     <dimen name="padding4">10dp</dimen>
+    <dimen name="padding5">5dp</dimen>
 
     <dimen name="textSize1">8sp</dimen>
     <dimen name="textSize2">10sp</dimen>

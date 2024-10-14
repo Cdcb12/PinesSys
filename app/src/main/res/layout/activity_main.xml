@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
@@ -11,10 +11,13 @@
 
 
     <RelativeLayout
+        android:id="@+id/relativeLayout2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/colorPallet4"
-        android:padding="@dimen/padding3">
+        android:padding="@dimen/padding3"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -44,9 +47,13 @@
     </RelativeLayout>
 
     <RelativeLayout
+        android:id="@+id/relativeLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        app:layout_constraintBottom_toTopOf="@+id/message_container"
+        app:layout_constraintTop_toBottomOf="@+id/relativeLayout2">
+
         <com.setvene.jm.pinessys.components.SetveneShadow
             android:layout_width="match_parent"
             android:layout_height="14dp"
@@ -68,96 +75,85 @@
 
     </RelativeLayout>
 
-
-
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/message_container"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:padding="@dimen/padding4"
-        android:gravity="center_vertical">
+        android:layout_weight="1"
+        android:backgroundTint="@color/colorPallet4"
+        app:cardCornerRadius="30dp"
+        app:cardElevation="2dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btn_multi"
+        app:layout_constraintStart_toStartOf="parent"
+        app:strokeWidth="0dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="@dimen/padding5"
+        android:layout_marginStart="@dimen/padding5"
+        android:layout_marginTop="@dimen/padding5">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="20dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btn_multi"
+        <LinearLayout
+            android:id="@+id/constraint_layout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="30dp"
-            app:cardElevation="2dp"
-            android:backgroundTint="@color/colorPallet4"
-            app:strokeWidth="0dp">
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/text_input_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:boxBackgroundMode="none"
+                app:boxStrokeWidth="0dp"
+                app:hintEnabled="false">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/input_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:hint="Envia un Texto"
+                    android:inputType="textMultiLine"
+                    android:maxLines="5"
+                    android:minLines="1"
+                    android:scrollbars="vertical"
+                    android:textColor="@android:color/white"
+                    android:textColorHint="#3DFFFFFF"
+                    android:textSize="@dimen/textSize5" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <LinearLayout
-                android:id="@+id/constraint_layout"
-                android:layout_width="match_parent"
-                android:orientation="horizontal"
+                android:id="@+id/btn_layout"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
->
-                <!-- TextInputLayout que contiene el EditText -->
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/text_input_layout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    app:boxBackgroundMode="none"
-                    app:boxStrokeWidth="0dp"
-                    app:hintEnabled="false">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/input_message"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:hint="Envia un Texto"
-                        android:textSize="@dimen/textSize5"
-                        android:inputType="textMultiLine"
-                        android:maxLines="5"
-                        android:minLines="1"
-                        android:scrollbars="vertical"
-                        android:textColor="@android:color/white"
-                        android:textColorHint="#3DFFFFFF" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <LinearLayout
-                    android:id="@+id/btn_layout"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_gravity="bottom">
+                android:layout_gravity="bottom"
+                android:orientation="horizontal">
 
 
-
-                </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_multi"
-            android:layout_width="55dp"
-            android:layout_height="55dp"
-            android:backgroundTint="@color/colorPallet4"
-            app:icon="@drawable/ic_mic"
-            android:insetTop="0dp"
-            android:layout_marginStart="10dp"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:iconTint="@color/white"
-            app:iconSize="@dimen/textSize6"
-            android:insetBottom="0dp"
-            app:elevation="10dp"
-            android:layout_gravity="center_vertical|bottom"
-            android:textColor="@android:color/white"/>
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_multi"
+        android:layout_width="55dp"
+        android:layout_height="55dp"
+        android:layout_gravity="center_vertical|bottom"
+        android:backgroundTint="@color/colorPallet4"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:layout_margin="@dimen/padding5"
+        android:textColor="@android:color/white"
+        app:elevation="10dp"
+        app:icon="@drawable/ic_mic"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="@dimen/textSize6"
+        app:iconTint="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 
-
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
