@@ -44,6 +44,25 @@
 
         </LinearLayout>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_live"
+            android:layout_width="55dp"
+            android:layout_height="55dp"
+            android:layout_alignParentEnd="true"
+            android:layout_gravity="center_vertical|bottom"
+            android:layout_margin="@dimen/padding5"
+            android:backgroundTint="@color/colorPallet4"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:textColor="@android:color/white"
+            app:elevation="10dp"
+            app:icon="@drawable/ic_in_live"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="@dimen/textSize6"
+            app:iconTint="@color/white"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
     </RelativeLayout>
 
     <RelativeLayout

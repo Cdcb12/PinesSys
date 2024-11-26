@@ -28,13 +28,7 @@ class AudioRecorder(private val context: Context) {
                 Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+            // TODO: Consider calling ActivityCompat#requestPermissions
             return
         }
         audioRecord = AudioRecord(
@@ -48,7 +42,7 @@ class AudioRecorder(private val context: Context) {
         audioRecord?.startRecording()
         isRecording = true
 
-        // Escribir los datos de audio en un archivo OGG en un hilo separado
+        // Escribir los datos de audio en un archivo PCM en un hilo separado
         Thread {
             val tempFile = File(context.externalCacheDir, "audio_${System.currentTimeMillis()}.pcm")
             val fileOutputStream = FileOutputStream(tempFile)
@@ -64,9 +58,8 @@ class AudioRecorder(private val context: Context) {
 
             fileOutputStream.close()
 
-            // Convertir PCM a OGG usando FFmpeg
-            convertPcmToOgg(tempFile, audioFile!!)
-            tempFile.delete() // Eliminar archivo PCM temporal
+            // Guardar el archivo PCM para posterior conversión
+            audioFile = tempFile // Guardar el archivo PCM temporal para convertirlo más tarde
         }.start()
     }
 
@@ -77,6 +70,15 @@ class AudioRecorder(private val context: Context) {
             isRecording = false
             audioRecord?.stop()
             audioRecord?.release()
+
+            // Convertir PCM a OGG solo cuando se detiene la grabación
+            val tempFile = audioFile
+            if (tempFile != null) {
+                val outputFile = File(context.externalCacheDir, "audio_${System.currentTimeMillis()}.ogg")
+                convertPcmToOgg(tempFile, outputFile)
+                tempFile.delete() // Eliminar archivo PCM temporal
+                audioFile = outputFile // Actualizar la variable con la ruta del archivo OGG final
+            }
 
             audioFile?.absolutePath // Devolver la ruta del archivo OGG final
         } catch (e: IOException) {

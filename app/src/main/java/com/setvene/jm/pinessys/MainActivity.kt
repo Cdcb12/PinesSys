@@ -1,8 +1,8 @@
 package com.setvene.jm.pinessys
 
-import android.animation.Animator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -14,17 +14,14 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
-import android.view.animation.AccelerateInterpolator
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.setvene.jm.pinessys.adapters.ChatAdapter
-import com.setvene.jm.pinessys.controllers.MessageHistoryManager
 import com.setvene.jm.pinessys.controllers.messages
+import com.setvene.jm.pinessys.controllers.MessageHistoryManager
 import com.setvene.jm.pinessys.model.ChatMessage
 import com.setvene.jm.pinessys.model.MessageType
 import com.setvene.jm.pinessys.model.SenderType
@@ -36,6 +33,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var inputMessage: EditText
     private lateinit var multiButton: MaterialButton
+    private lateinit var liveButton: MaterialButton
     private lateinit var recyclerView: RecyclerView
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var vibrator: Vibrator
@@ -47,6 +45,8 @@ class MainActivity : AppCompatActivity() {
 
         inputMessage = findViewById(R.id.input_message)
         multiButton = findViewById(R.id.btn_multi)
+        liveButton = findViewById(R.id.btn_live)
+
         val vibratorManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             this.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
         } else {
@@ -85,6 +85,10 @@ class MainActivity : AppCompatActivity() {
             if (inputMessage.text.isNotEmpty()) {
                 sendMessage()
             }
+        }
+        liveButton.setOnClickListener {
+            val liveIntent = Intent(this, InLiveActivity::class.java)
+            startActivity(liveIntent)
         }
 
         var initialX = 0f
@@ -141,7 +145,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 else -> false
             }
-        }    }
+        }
+    }
 
     private fun startRecordingAnimation() {
         multiButton.animate()
