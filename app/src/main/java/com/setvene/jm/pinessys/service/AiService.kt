@@ -19,6 +19,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
@@ -33,14 +34,20 @@ class AiService(
 
     fun listen(path: String, position: Int,callback: (String?) -> Unit) {
         val audioFile = File(path)
+
+        println(audioFile)
+
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("file", audioFile.name, RequestBody.create("audio/ogg".toMediaTypeOrNull(), audioFile))
+            .addFormDataPart("file", audioFile.name, audioFile.asRequestBody("audio/ogg".toMediaTypeOrNull()))
             .addFormDataPart("model", "whisper-large")
-            .addFormDataPart("language","es")
+            .addFormDataPart("language", "es")
             .build()
 
-        service.makeRequest(requestBody, "http://192.168.0.175:3000/v1/audio/transcriptions", object : OkHttpServiceResponse.RequestCallback{
+        val contentLength = requestBody.contentLength()
+        Log.d("Request", "Content length: $contentLength")
+
+        service.makeRequest(requestBody, "http://192.168.1.175:3000/v1/audio/transcriptions", object : OkHttpServiceResponse.RequestCallback{
             override fun onSuccess(response: Any) {
                 callback(response.toString())
             }
@@ -122,7 +129,7 @@ class AiService(
             }
             service.makeStreamRequestAI(
                 requestBody,
-                "http://192.168.0.175:3000/v1/chat/completions",
+                "http://192.168.1.175:3000/v1/chat/completions",
                 callback
             )
         }

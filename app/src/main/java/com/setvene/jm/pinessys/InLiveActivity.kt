@@ -27,6 +27,8 @@ class InLiveActivity : AppCompatActivity() {
     private lateinit var webSocket: WebSocket
     private lateinit var client: OkHttpClient
     private var mediaPlayer: MediaPlayer? = null
+    private val audioQueue: MutableList<File> = mutableListOf() // Cola de reproducción
+    private var isPlayingAudio = false // Estado de reproducción
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +46,7 @@ class InLiveActivity : AppCompatActivity() {
         // Configuración de OkHttpClient y WebSocket
         client = OkHttpClient()
         val request = Request.Builder()
-            .url("ws://192.168.0.179:8000/ws/generate_audio/") // URL de tu servidor WebSocket
+            .url("ws://192.168.1.176:8000/ws/generate_audio/") // URL de tu servidor WebSocket
             .build()
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
@@ -57,7 +59,6 @@ class InLiveActivity : AppCompatActivity() {
                         "type": "conversation.create"
                     }
                 """.trimIndent()
-
 
                 webSocket.send(message)
             }
@@ -146,21 +147,26 @@ class InLiveActivity : AppCompatActivity() {
     }
 
     private fun startRecordingAnimation() {
-        liveButton.animate()
-            .scaleX(1.6f)
-            .scaleY(1.6f)
-            .setDuration(500)
-            .start()
+        runOnMainThread {
+            liveButton.animate()
+                .scaleX(1.6f)
+                .scaleY(1.6f)
+                .setDuration(500)
+                .start()
+        }
     }
 
-    private fun resetUI(view: View, initialX: Float) {
-        liveButton.animate()
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(500)
-            .start()
 
-        view.x = initialX
+    private fun resetUI(view: View, initialX: Float) {
+        runOnMainThread  {
+            liveButton.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(500)
+                .start()
+
+            view.x = initialX
+        }
     }
 
     // Función para convertir audio a Base64
@@ -209,7 +215,11 @@ class InLiveActivity : AppCompatActivity() {
                 outputStream.write(audioBytes)
                 outputStream.close()
 
-                playAudio(tempFile)
+                // Agregar el archivo a la cola
+                audioQueue.add(tempFile)
+                runOnMainThread{
+                    playNextAudioIfNeeded()
+                }
             } else {
                 Log.d("WebSocket", "Tipo de mensaje no esperado: ${jsonObject.optString("type")}")
             }
@@ -218,22 +228,55 @@ class InLiveActivity : AppCompatActivity() {
         }
     }
 
+    private fun playNextAudioIfNeeded() {
+        if (!isPlayingAudio && audioQueue.isNotEmpty()) {
+            // Deshabilitar el botón al iniciar la reproducción
+            Handler(Looper.getMainLooper()).post {
+                liveButton.isEnabled = false
+            }
 
-    // Crear un archivo temporal para guardar el audio decodificado
+            val nextAudioFile = audioQueue.removeAt(0) // Tomar el primer archivo de la cola
+            playAudio(nextAudioFile)
+        } else if (audioQueue.isEmpty()) {
+            // Habilitar el botón cuando se termina la reproducción
+            runOnMainThread  {
+                liveButton.isEnabled = true
+            }
+        }
+    }
+
+
+    private fun playAudio(file: File) {
+        isPlayingAudio = true
+        mediaPlayer?.release() // Liberar el MediaPlayer anterior si existe
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(file.absolutePath)
+            prepare()
+            start()
+
+            // Calcular el tiempo para el siguiente audio
+            val overlapTime = 250L // 250 ms antes
+            val playDuration = duration - overlapTime
+
+            // Programar la reproducción del siguiente audio
+            val handler = Handler(Looper.getMainLooper())
+            handler.postDelayed({
+                isPlayingAudio = false
+                playNextAudioIfNeeded() // Continuar con el siguiente audio
+            }, playDuration.coerceAtLeast(0)) // Asegurarse de no usar tiempos negativos
+
+            setOnCompletionListener {
+                // Asegurar que el MediaPlayer actual se libera al terminar
+                release()
+            }
+        }
+        Log.d("MediaPlayer", "Reproduciendo audio desde archivo: ${file.absolutePath}")
+    }
+
     private fun createTempAudioFile(): File {
         val tempFile = File.createTempFile("audio_", ".mp3", cacheDir)
         tempFile.deleteOnExit()
         return tempFile
-    }
-
-    // Reproducir el audio utilizando MediaPlayer
-    private fun playAudio(file: File) {
-        mediaPlayer?.release() // Liberar el MediaPlayer anterior si existe
-        mediaPlayer = MediaPlayer()
-        mediaPlayer?.setDataSource(file.absolutePath)
-        mediaPlayer?.prepare()
-        mediaPlayer?.start()
-        Log.d("MediaPlayer", "Reproduciendo audio desde archivo: ${file.absolutePath}")
     }
 
     override fun onDestroy() {
@@ -242,4 +285,13 @@ class InLiveActivity : AppCompatActivity() {
         client.dispatcher.executorService.shutdown()
         mediaPlayer?.release() // Liberar el MediaPlayer
     }
+
+    fun runOnMainThread(action: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action()
+        } else {
+            Handler(Looper.getMainLooper()).post { action() }
+        }
+    }
+
 }
