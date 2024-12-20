@@ -27,9 +27,6 @@
         tools:ignore="ExtraText"
         tools:targetApi="31">
         <activity
-            android:name=".InLiveActivity"
-            android:exported="false" />
-        <activity
             android:name=".SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">

@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">PinesSys</string>
-    <string name="ai_name">Nubill AI</string>
-    <string name="type_document_budget">Preosupuesto</string>
+    <string name="ai_name">Pines AI</string>
+    <string name="type_conversation">Chat</string>
 
     <string name="okhttp_error_ConnectException">Sin conexión a internet</string>
     <string name="okhttp_error_UnknownHostException">URL o host desconocido</string>

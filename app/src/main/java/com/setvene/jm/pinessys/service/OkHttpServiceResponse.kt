@@ -1,15 +1,19 @@
 package com.setvene.jm.pinessys.service
 
 import android.app.Activity
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.os.Build
+import android.util.Log
+import android.webkit.WebSettings
 import com.setvene.jm.pinessys.R
-import com.setvene.jm.pinessys.model.Choice
-import com.setvene.jm.pinessys.model.Delta
-import com.setvene.jm.pinessys.model.EventStreamChunk
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
 import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
@@ -18,82 +22,75 @@ import java.net.ConnectException
 import java.net.MalformedURLException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLHandshakeException
 
+
 class OkHttpServiceResponse(private val context: Activity) {
-    interface StreamCallback {
-        fun onStartStream() {}
-        fun onChunkReceived(chunk: EventStreamChunk) {}
-        fun onError(responseCode: Number, message: Any) {}
-        fun onFinallyStream() {}
+    private val scope = CoroutineScope(Dispatchers.IO)
+    private val client = OkHttpClient()
+
+    private fun getUserAgent(): String {
+        return try {
+            val webSettings = WebSettings.getDefaultUserAgent(context)
+            webSettings
+        } catch (e: Exception) {
+            "Android ${Build.VERSION.RELEASE}; ${Build.MODEL} Build/${Build.ID}"
+        }
     }
-    interface RequestCallback {
+
+
+    interface LoginCallback {
+
         fun onSuccess(response: Any)
         fun onError(responseCode: Number, message: Any) {}
     }
 
-    fun makeRequest(formBody: RequestBody, url: String, callback: RequestCallback) {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .build()
-
+    fun loadImage(url: String, callback: (Any?, Any?) -> Unit) {
         val request = Request.Builder()
             .url(url)
-            .post(formBody)
+            .addHeader("Authorization", "Bearer NS20gEo80zV6F3WoxFOR5UKgztqilJ63")
             .build()
-
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                val errorMessage = getErrorMessage(e)
-                println("Request failed: ${e.message}")
-                e.printStackTrace()
-                callback.onError(400, errorMessage)
+                Log.e("ImageLoad", "Error al cargar la imagen", e)
+                callback(false, "Error to Load Image: ${e.message}")
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val responseBody = response.body?.string()
-                println(responseBody)
-
-                if (responseBody != null) {
-                    try {
-                        val inquiryResponse = JSONObject(responseBody)
-
-                        when (response.code) {
-                            404 -> context.runOnUiThread {
-                                callback.onError(response.code, inquiryResponse.getJSONObject("error").getString("message"))
-                            }
-                            503, 500 -> context.runOnUiThread {
-                                callback.onError(response.code, inquiryResponse.getJSONObject("error").getString("message"))
-                            }
-                            200 -> context.runOnUiThread {
-                                callback.onSuccess(inquiryResponse.getString("text"))
-                            }
-                        }
-
-                    } catch (e: JSONException) {
-                        context.runOnUiThread {
-                            callback.onError(422, "Error parsing JSON response: $e")
-                        }
+                try {
+                    if (response.isSuccessful) {
+                        response.body?.byteStream()?.let { inputStream ->
+                            val bitmap = BitmapFactory.decodeStream(inputStream)
+                            callback(true, bitmap)
+                        } ?: callback(false, "Empty response body")
+                    } else {
+                        // Intenta leer el cuerpo del error como un string
+                        val errorBody = response.body?.string() ?: "No error details"
+                        Log.e("ImageLoad", "Error en la respuesta: ${response.code} - $errorBody")
+                        callback(false, errorBody)
                     }
-                } else {
-                    context.runOnUiThread {
-                        callback.onError(503, "Error getting response body")
-                    }
+                } catch (e: Exception) {
+                    Log.e("ImageLoad", "Unexpected error", e)
+                    callback(false, "Unexpected error: ${e.message}")
+                } finally {
+                    response.close()
                 }
             }
         })
     }
 
-    fun makeStreamRequestAI(formBody: RequestBody, url: String, callback: StreamCallback) {
+    fun makeRequest(formBody: FormBody.Builder, url: String, callback: LoginCallback, dialogShow: Boolean = true) {
         val client = OkHttpClient()
+        val requestBody = formBody.build()
+
+        val userAgent = getUserAgent()
 
         val request = Request.Builder()
-            .url(url)
-            .post(formBody)
+            .url( url )
+            .post(requestBody)
+            .addHeader("Authorization", "Bearer NS20gEo80zV6F3WoxFOR5UKgztqilJ63")
+            .addHeader("User-Agent", userAgent)
             .build()
 
         client.newCall(request).enqueue(object : Callback {
@@ -104,44 +101,22 @@ class OkHttpServiceResponse(private val context: Activity) {
 
             override fun onResponse(call: Call, response: Response) {
                 val responseBody = response.body?.string()
+
                 if (responseBody != null) {
-                    println("Response Body: $responseBody")  // Log the full response body
-
                     try {
-                        val lines = responseBody.split("\n")
-                        callback.onStartStream()
+                        val jsonObject = JSONObject(responseBody)
+                        val inquiryResponse = jsonObject.get("response")
 
-                        for (line in lines) {
-                            if (line.startsWith("data: ")) {
-                                val jsonData = line.removePrefix("data: ").trim()
-
-                                if (jsonData == "[DONE]") {
-                                    break
+                        when (response.code) {
+                            200 -> {
+                                context.runOnUiThread {
+                                    callback.onSuccess(inquiryResponse)
                                 }
-
-                                val jsonObject = JSONObject(jsonData)
-                                val choicesArray = jsonObject.getJSONArray("choices")
-                                val choice = choicesArray.getJSONObject(0)
-                                val delta = choice.getJSONObject("delta")
-                                val content = delta.optString("content", "")
-
-                                val eventStreamChunk = EventStreamChunk(
-                                    Choice(
-                                        choice.getInt("index"),
-                                        Delta(
-                                            delta.optString("role", ""),
-                                            content
-                                        ),
-                                        choice.opt("finish_reason")
-                                    )
-                                )
-                                Thread.sleep(10)
-                                callback.onChunkReceived(eventStreamChunk)
-
+                            }
+                            else -> {
+                                callback.onError(response.code, inquiryResponse)
                             }
                         }
-
-                        callback.onFinallyStream()
 
                     } catch (e: JSONException) {
                         callback.onError(422, "Error parsing JSON response: $e")
@@ -153,6 +128,7 @@ class OkHttpServiceResponse(private val context: Activity) {
         })
     }
 
+
     private fun getErrorMessage(e: IOException): String {
         return when (e) {
             is ConnectException -> context.getString(R.string.okhttp_error_ConnectException)
@@ -163,4 +139,6 @@ class OkHttpServiceResponse(private val context: Activity) {
             else -> e.toString()
         }
     }
+
+
 }

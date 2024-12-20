@@ -19,10 +19,13 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
+
         <LinearLayout
+            android:id="@+id/linearLayout"
+            android:layout_marginStart="@dimen/padding4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
+            android:layout_toEndOf="@+id/btn_change_conversation"
             android:orientation="vertical"
             tools:ignore="UselessParent">
 
@@ -38,31 +41,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/roboto_black"
-                android:text="@string/type_document_budget"
+                android:text="@string/type_conversation"
                 android:textColor="@color/textColor1"
                 android:textSize="@dimen/textSize4" />
 
         </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_live"
-            android:layout_width="55dp"
-            android:layout_height="55dp"
-            android:layout_alignParentEnd="true"
-            android:layout_gravity="center_vertical|bottom"
-            android:layout_margin="@dimen/padding5"
-            android:backgroundTint="@color/colorPallet4"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:textColor="@android:color/white"
-            app:elevation="10dp"
-            app:icon="@drawable/ic_in_live"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="@dimen/textSize6"
-            app:iconTint="@color/white"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+
     </RelativeLayout>
 
     <RelativeLayout

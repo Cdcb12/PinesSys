@@ -8,7 +8,7 @@ val messages: MutableList<ChatMessage> = mutableListOf()
 
 
 object MessageHistoryManager {
-    private const val MAX_HISTORY_SIZE = 20
+    private const val MAX_HISTORY_SIZE = 30
     private val messageHistory: MutableList<Map<String, String>> = mutableListOf()
 
     fun addMessage(role: String, content: String) {

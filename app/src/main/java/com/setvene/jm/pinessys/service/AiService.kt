@@ -1,69 +1,29 @@
 package com.setvene.jm.pinessys.service
 
-import android.app.Activity
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.setvene.jm.pinessys.adapters.ChatAdapter
-import com.setvene.jm.pinessys.controllers.MessageHistoryManager
 import com.setvene.jm.pinessys.controllers.messages
 import com.setvene.jm.pinessys.model.ChatMessage
-import com.setvene.jm.pinessys.model.EventStreamChunk
 import com.setvene.jm.pinessys.model.MessageType
 import com.setvene.jm.pinessys.model.SenderType
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okio.ByteString
+import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
+import java.util.concurrent.TimeUnit
 
 class AiService(
-    private val activity: Activity,
     private val chatAdapter: ChatAdapter,
     private val recyclerView: RecyclerView,
+    private val listener: WebSocketClientListener
 ) {
-    private var service = OkHttpServiceResponse(activity)
-
-
-    fun listen(path: String, position: Int,callback: (String?) -> Unit) {
-        val audioFile = File(path)
-
-        println(audioFile)
-
-        val requestBody = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("file", audioFile.name, audioFile.asRequestBody("audio/ogg".toMediaTypeOrNull()))
-            .addFormDataPart("model", "whisper-large")
-            .addFormDataPart("language", "es")
-            .build()
-
-        val contentLength = requestBody.contentLength()
-        Log.d("Request", "Content length: $contentLength")
-
-        service.makeRequest(requestBody, "http://192.168.1.175:3000/v1/audio/transcriptions", object : OkHttpServiceResponse.RequestCallback{
-            override fun onSuccess(response: Any) {
-                callback(response.toString())
-            }
-
-            override fun onError(responseCode: Number, message: Any) {
-                super.onError(responseCode, message)
-                Log.d("Eror", message.toString())
-                activity.runOnUiThread {
-                    messages[position].updateText("Error: $message")
-                    MessageHistoryManager.deleteLastValue()
-                    chatAdapter.notifyItemChanged(position)
-                    recyclerView.scrollToPosition(messages.size - 1)
-                }
-            }
-        })
-    }
+    private var webSocket: WebSocket? = null
+    private var conversationId: String? = null
+    var callback: MessageResponseCallback? = null
 
     fun createAIMessage(): Int {
         val thinkingMessage = ChatMessage(SenderType.AI, MessageType.TEXT_IMAGE, "Pensando...")
@@ -76,62 +36,234 @@ class AiService(
     }
 
     fun predict(position: Int) {
-        (activity as? AppCompatActivity)?.lifecycleScope?.launch(Dispatchers.Main) {
-            val jsonObject = JSONObject().apply {
-                put("messages", MessageHistoryManager.getMessagesJsonArray())
-                put("model", "llama-3.1-70b-8k")
-                put("temperature", 0.4)
-                put("max_tokens", 1024)
-                put("stream", true)
-                put("top_p", 1)
+
+    }
+
+
+    private val client = OkHttpClient.Builder()
+        .pingInterval(30, TimeUnit.SECONDS)
+        .build()
+
+    fun connect(serverUrl: String) {
+        val request = Request.Builder()
+            .url(serverUrl)
+            .build()
+
+        webSocket = client.newWebSocket(request, object : okhttp3.WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                Log.d("WebSocket", "Conexión establecida")
+                createConversation()
             }
-            val mediaType = "application/json; charset=utf-8".toMediaType()
-            val requestBody = jsonObject.toString().toRequestBody(mediaType)
 
-
-            val animate = recyclerView.itemAnimator
-
-            val callback = object : OkHttpServiceResponse.StreamCallback {
-                private val accumulatedContent = StringBuilder()
-
-                override fun onStartStream() {
-                    recyclerView.itemAnimator = null
-                }
-
-                override fun onChunkReceived(chunk: EventStreamChunk) {
-                    activity.runOnUiThread {
-                        accumulatedContent.append(chunk.choices.delta.content)
-                        messages[position].updateText(accumulatedContent.toString())
-                        chatAdapter.notifyItemChanged(position)
-                        recyclerView.scrollToPosition(position)
-                    }
-                }
-
-                override fun onFinallyStream() {
-                    activity.runOnUiThread {
-                        val finalContent = accumulatedContent.toString()
-                        MessageHistoryManager.addMessage("assistant", finalContent)
-                        chatAdapter.notifyItemChanged(position)
-                    }
-                    recyclerView.itemAnimator = animate
-
-                }
-
-                override fun onError(responseCode: Number, message: Any) {
-                    Log.d("Eror", message.toString())
-                    activity.runOnUiThread {
-                        messages[position].updateText("Error: $message")
-                        MessageHistoryManager.deleteLastValue()
-                        chatAdapter.notifyItemChanged(position)
-                        recyclerView.scrollToPosition(messages.size - 1)
-                    }
-                }
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                Log.d("WebSocket", "Mensaje recibido: $text")
+                handleMessage(text)
             }
-            service.makeStreamRequestAI(
-                requestBody,
-                "http://192.168.1.175:3000/v1/chat/completions",
-                callback
-            )
+
+            override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                Log.d("WebSocket", "Mensaje de bytes recibido")
+            }
+
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                Log.d("WebSocket", "Cerrando conexión: $code - $reason")
+            }
+
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                Log.e("WebSocket", "Error en la conexión", t)
+                listener.onConnectionError(t)
+            }
+        })
+    }
+
+    private fun createConversation() {
+        val conversationPayload = JSONObject().apply {
+            put("type", "conversation.create")
+            put("response", JSONObject().apply {
+                put("tools", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("name", "get_inventory")
+                        put("description", "Check product inventory in warehouses")
+                        put("parameters", JSONObject().apply {
+                            put("type", "object")
+                            put("properties", JSONObject().apply {
+                                put("product_code", JSONObject().apply {
+                                    put("type", "string")
+                                    put("description", "The unique code of the product to check in inventory")
+                                })
+                                put("warehouse", JSONObject().apply {
+                                    put("type", "string")
+                                    put("description", "The warehouse location to check inventory (optional)")
+                                    put("optional", true)
+                                })
+                            })
+                        })
+                    })
+                    put(JSONObject().apply {
+                        put("name", "get_image")
+                        put("description", "Retrieve product image based on product code")
+                        put("parameters", JSONObject().apply {
+                            put("type", "object")
+                            put("properties", JSONObject().apply {
+                                put("product_code", JSONObject().apply {
+                                    put("type", "string")
+                                    put("description", "The unique code of the product to retrieve image")
+                                })
+                            })
+                        })
+                    })
+                    put(JSONObject().apply {
+                        put("name", "modify_packets_inventory")
+                        put("description", "Modify the package inventory with several operations")
+                        put("delicate", true)
+                        put("parameters", JSONObject().apply {
+                            put("type", "object")
+                            put("properties", JSONObject().apply {
+                                put("product_code", JSONObject().apply {
+                                    put("type", "string")
+                                    put("description", "The unique code of the product")
+                                })
+                                put("operation_type", JSONObject().apply {
+                                    put("type", "string")
+                                    put("description", "Type of Operation to perform on the packet")
+                                    put("enum", JSONArray().apply {
+                                        put("establish")
+                                        put("subtract")
+                                        put("add")
+                                        put("delete")
+                                        put("create")
+                                    })
+                                })
+                                put("packet_id", JSONObject().apply {
+                                    put("type", "number")
+                                    put("description", "Identification of the packet to be modified")
+                                })
+                                put("quantity", JSONObject().apply {
+                                    put("type", "number")
+                                    put("description", "Quantity to modify the packet")
+                                    put("optional", true)
+                                })
+                            })
+                        })
+                    })
+                })
+            })
         }
+
+        webSocket?.send(conversationPayload.toString())
+    }
+
+    fun sendMessage(
+        text: String? = null,
+        audioBase64: String? = null,
+        toolName: String? = null,
+        toolResult: Any? = null,
+        toolError: String? = null,
+        callback: MessageResponseCallback? = null
+    ) {
+        conversationId?.let { id ->
+            val messagePayload = JSONObject().apply {
+                // Determine message type based on parameters
+                put("type", when {
+                    toolName != null -> "tools.response"
+                    else -> "conversation.item.create"
+                })
+                put("id", id)
+
+                // Handle tool response
+                if (toolName != null) {
+                    put("tool_name", toolName)
+
+                    toolResult?.let {
+                        put("result", when (it) {
+                            is JSONObject -> it
+                            is JSONArray -> it
+                            else -> JSONObject().put("data", it.toString())
+                        })
+                    }
+
+                    toolError?.let {
+                        put("error", it)
+                    }
+                }
+
+                // Handle conversation item creation
+                if (text != null || audioBase64 != null) {
+                    put("item", JSONObject().apply {
+                        put("content", JSONArray().apply {
+                            text?.let {
+                                put(JSONObject().apply {
+                                    put("type", "input_text")
+                                    put("text", it)
+                                })
+                            }
+                            audioBase64?.let {
+                                put(JSONObject().apply {
+                                    put("type", "input_audio")
+                                    put("audio", it)
+                                })
+                            }
+                        })
+                    })
+                }
+            }
+
+            this.callback = callback
+
+            webSocket?.send(messagePayload.toString())
+        }
+    }
+
+    private fun createResponse() {
+        conversationId?.let { id ->
+            val responsePayload = JSONObject().apply {
+                put("type", "response.create")
+                put("id", id)
+            }
+
+            webSocket?.send(responsePayload.toString())
+        }
+    }
+
+    interface WebSocketClientListener {
+        fun onConversationCreated(conversationId: String)
+        fun onResponseReceived(response: JSONObject)
+        fun onConnectionError(throwable: Throwable)
+
+    }
+    abstract class MessageResponseCallback {
+        open fun onToolResponse(toolName: String, result: Any?) {
+        }
+        abstract fun onResponseReceived(response: MessageType, text: String)
+    }
+
+    private fun handleMessage(message: String) {
+        try {
+            val jsonMessage = JSONObject(message)
+            when (jsonMessage.getString("type")) {
+                "conversation.create.response" -> {
+                    if (jsonMessage.getJSONObject("response").getString("status") == "success") {
+                        conversationId = jsonMessage.getString("id")
+                        Log.d("WebSocket", "Conversación creada con ID: $conversationId")
+                        listener.onConversationCreated(conversationId!!)
+                    }
+                }
+                "conversation.item.created" -> {
+                    Log.d("WebSocket", "Mensaje enviado")
+                    createResponse()
+                }
+                "response.created" -> {
+                    listener.onResponseReceived(jsonMessage)
+                }
+                "error" -> {
+                    Log.e("WebSocket", "Error: ${jsonMessage.getString("message")}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("WebSocket", "Error procesando mensaje", e)
+        }
+    }
+
+    fun close() {
+        webSocket?.close(1000, "Cerrando conexión")
     }
 }
